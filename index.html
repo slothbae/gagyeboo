@@ -101,16 +101,53 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
 .overflow-x{overflow-x:auto;}
 /* compact txn table */
 .txn-tbl{width:100%;border-collapse:collapse;table-layout:fixed;}
-.txn-tbl th{font-size:0.7rem;color:var(--muted);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);font-weight:500;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
-.txn-tbl td{padding:9px 10px;font-size:0.81rem;border-bottom:1px solid rgba(228,228,239,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.txn-tbl th{font-size:0.65rem;color:var(--muted);text-align:left;padding:6px 12px;border-bottom:1px solid var(--border);font-weight:500;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.txn-tbl td{padding:9px 12px;font-size:0.81rem;border-bottom:1px solid rgba(228,228,239,0.6);font-family:'Noto Sans KR',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .txn-tbl tr:last-child td{border-bottom:none;}
 .txn-tbl tbody tr:hover td{background:rgba(124,106,247,0.03);}
-.txn-tbl .tc-date{color:var(--muted);font-family:'DM Mono',monospace;font-size:0.76rem;width:52px;}
-.txn-tbl .tc-cat{width:72px;}
-.txn-tbl .tc-amt{text-align:right;font-family:'DM Mono',monospace;color:var(--text);width:110px;}
-.txn-tbl .tc-act{text-align:right;white-space:nowrap;width:88px;}
+.txn-tbl .tc-date{color:var(--muted);font-family:'Noto Sans KR',sans-serif;font-size:0.81rem;width:6%;}
+.txn-tbl .tc-desc{width:38%;}
+.txn-tbl .tc-cat{width:18%;}
+.txn-tbl .tc-amt{text-align:right;font-family:'Noto Sans KR',sans-serif;color:var(--text);width:26%;}
+.txn-tbl .tc-act{text-align:right;width:12%;}
+@media(max-width:600px){
+  .txn-tbl{table-layout:auto;min-width:0;width:100%;}
+  .txn-tbl th,.txn-tbl td{padding:7px 6px;font-size:0.74rem;}
+  /* mobile column order: 날짜 | 내용 | 금액 | 분류 | 수정/삭제 */
+  .txn-tbl .tc-date{width:28px;min-width:28px;font-size:0.72rem;color:var(--muted);}
+  .txn-tbl .tc-desc{width:auto;}
+  /* swap: amount before category on mobile via display trick */
+  .txn-tbl .tc-amt{width:86px;min-width:86px;font-size:0.73rem;text-align:right;}
+  .txn-tbl .tc-cat{width:54px;min-width:54px;}
+  .txn-tbl .tc-act{width:60px;min-width:60px;}
+  .txn-tbl .tc-act .btn-sm{padding:2px 5px;font-size:0.62rem;}
+  .txn-tbl-wrap{overflow-x:hidden;}
+}
 
-/* ANNUAL */
+/* BOTTOM SHEET (mobile txn actions) */
+.bottom-sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:2000;backdrop-filter:blur(2px);}
+.bottom-sheet-overlay.open{display:block;}
+.bottom-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:20px 20px 0 0;padding:0 0 env(safe-area-inset-bottom,16px);z-index:2001;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 32px rgba(0,0,0,0.12);}
+.bottom-sheet.open{transform:translateY(0);}
+.bs-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;}
+.bs-title{padding:14px 20px 10px;border-bottom:1px solid var(--border);}
+.bs-title .bs-desc{font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bs-title .bs-meta{font-size:0.75rem;color:var(--muted);}
+.bs-actions{padding:8px 12px 12px;}
+.bs-btn{display:flex;align-items:center;gap:14px;width:100%;padding:14px 12px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:0.9rem;cursor:pointer;border-radius:10px;transition:background .15s;}
+.bs-btn:hover,.bs-btn:active{background:var(--surface);}
+.bs-btn-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.bs-btn-edit .bs-btn-icon{background:rgba(124,106,247,0.12);}
+.bs-btn-del .bs-btn-icon{background:rgba(232,64,64,0.1);}
+.bs-btn-del .bs-btn-label{color:var(--red);}
+.bs-btn-cancel{margin-top:4px;border-top:1px solid var(--border);color:var(--muted);font-size:0.85rem;justify-content:center;}
+/* mobile: hide desktop action buttons, make rows clickable */
+@media(max-width:600px){
+  .txn-tbl .tc-act{display:none;}
+  .txn-tbl th.tc-act{display:none;}
+  .txn-tbl tbody tr{cursor:pointer;}
+  .txn-tbl tbody tr:active td{background:rgba(124,106,247,0.07);}
+}
 .annual-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 .month-summary-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
 .month-summary-card:hover{border-color:var(--accent);transform:translateY(-2px);}
@@ -245,9 +282,9 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
         <h3>지출 내역 <span id="txnCount" style="color:var(--accent);font-family:'DM Mono',monospace;margin-left:4px;"></span></h3>
         <button class="btn-add" onclick="openTxnModal()">＋ 지출 추가</button>
       </div>
-      <div class="overflow-x">
+      <div class="overflow-x txn-tbl-wrap">
         <table class="txn-tbl">
-          <thead><tr><th class="tc-date">날짜</th><th>내용</th><th class="tc-cat">분류</th><th class="tc-amt">금액</th><th class="tc-act">수정/삭제</th></tr></thead>
+          <thead><tr><th class="tc-date">날짜</th><th class="tc-desc">내용</th><th class="tc-amt">금액</th><th class="tc-cat">분류</th><th class="tc-act">수정/삭제</th></tr></thead>
           <tbody id="txnBody"></tbody>
         </table>
       </div>
@@ -380,7 +417,7 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
 <div class="modal-overlay" id="txnModal">
   <div class="modal">
     <h2 id="txnModalTitle">지출 추가</h2>
-    <div class="fg"><label>거래일</label><input type="text" id="f-date" placeholder="예: 4/5"></div>
+    <div class="fg"><label>거래일</label><input type="text" id="f-date" placeholder="예: 15 또는 15일"></div>
     <div class="fg"><label>내용</label><input type="text" id="f-desc" placeholder="예: 마트 장보기"></div>
     <div class="fg"><label>금액 (원)</label><input type="number" id="f-amt"></div>
     <div class="fg"><label>분류</label>
@@ -422,6 +459,29 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
     <div class="fg"><label>비고</label><input type="text" id="rf-note" placeholder="예: 전세, 자가"></div>
     <div class="fg"><label>평가액 (원)</label><input type="number" id="rf-amt"></div>
     <div class="modal-btns"><button class="btn-cancel" onclick="closeModal('realtyModal')">취소</button><button class="btn-save" onclick="saveRealty()">저장</button></div>
+  </div>
+</div>
+
+<!-- BOTTOM SHEET (mobile) -->
+<div class="bottom-sheet-overlay" id="bsOverlay" onclick="closeBs()"></div>
+<div class="bottom-sheet" id="bottomSheet">
+  <div class="bs-handle"></div>
+  <div class="bs-title">
+    <div class="bs-desc" id="bsDesc">—</div>
+    <div class="bs-meta" id="bsMeta">—</div>
+  </div>
+  <div class="bs-actions">
+    <button class="bs-btn bs-btn-edit" onclick="bsEdit()">
+      <div class="bs-btn-icon">✏️</div>
+      <span class="bs-btn-label">수정하기</span>
+    </button>
+    <button class="bs-btn bs-btn-del" onclick="bsDel()">
+      <div class="bs-btn-icon">🗑️</div>
+      <span class="bs-btn-label">삭제하기</span>
+    </button>
+    <button class="bs-btn bs-btn-cancel" onclick="closeBs()">
+      취소
+    </button>
   </div>
 </div>
 
@@ -590,6 +650,18 @@ function tagClass(cat){return'tag tag-'+(cat||'기타').replace('/','');}
 function budgetTotalIncome(m){return Object.values(BUDGET[m].income).reduce((a,b)=>a+b,0);}
 function budgetTotalExpense(m){return BUDGET[m].txns.reduce((a,t)=>a+t.amt,0);}
 function getCats(m){const c={};ALL_CATS.forEach(k=>c[k]=0);BUDGET[m].txns.forEach(t=>{const k=ALL_CATS.includes(t.cat)?t.cat:'기타';c[k]+=t.amt;});return c;}
+// 날짜를 "n일" 형식으로: "3/15" → "15일", "15" → "15일"
+function fmtDay(dateStr){
+  if(!dateStr)return'';
+  const s=String(dateStr).trim();
+  // already "n일"
+  if(s.endsWith('일'))return s;
+  // "m/d" format
+  if(s.includes('/')){const d=s.split('/')[1];return d+'일';}
+  // pure number
+  if(/^\d+$/.test(s))return s+'일';
+  return s;
+}
 
 // income input: show raw number on focus, comma-formatted on blur
 function updateIncome(el,month,key){
@@ -701,10 +773,15 @@ function renderTxns(){
   if(!txns.length){tb.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:28px">지출 내역이 없습니다</td></tr>`;return;}
   txns.forEach((t,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="tc-date">${t.date}</td><td class="editable-cell">${t.desc}</td><td><span class="${tagClass(t.cat)}">${t.cat}</span></td><td class="tc-amt editable-cell">${c(t.amt)}원</td><td class="tc-act"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
-    tr.querySelectorAll('.editable-cell').forEach(td=>td.addEventListener('click',()=>openTxnModal(i)));
+    tr.innerHTML=`<td class="tc-date">${fmtDay(t.date)}</td><td class="tc-desc editable-cell">${t.desc}</td><td class="tc-amt editable-cell">${c(t.amt)}원</td><td class="tc-cat"><span class="${tagClass(t.cat)}">${t.cat}</span></td><td class="tc-act"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
+    // 데스크톱: 셀 클릭 / 버튼 클릭
+    tr.querySelectorAll('.editable-cell').forEach(td=>td.addEventListener('click',()=>{if(window.innerWidth>600)openTxnModal(i);}));
     tr.querySelector('.btn-edit').onclick=()=>openTxnModal(i);
     tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;BUDGET[curBudgetMonth].txns.splice(i,1);renderTxns();toast('삭제됐어요');};
+    // 모바일: 행 클릭 → 바텀시트
+    tr.addEventListener('click',e=>{
+      if(window.innerWidth<=600){e.stopPropagation();openBs(i);}
+    });
     tb.appendChild(tr);
   });
 }
@@ -947,7 +1024,30 @@ function showAssetSub(id){
   if(btn) toggleAssetSub(id, btn);
 }
 
-// ═══════════ MODAL HELPERS ═══════════
+// ═══════════ BOTTOM SHEET (mobile) ═══════════
+let bsIdx=null;
+function openBs(i){
+  bsIdx=i;
+  const t=BUDGET[curBudgetMonth].txns[i];
+  document.getElementById('bsDesc').textContent=t.desc;
+  document.getElementById('bsMeta').textContent=`${fmtDay(t.date)} · ${t.cat} · ${c(t.amt)}원`;
+  document.getElementById('bsOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('bottomSheet').classList.add('open'),10);
+}
+function closeBs(){
+  document.getElementById('bottomSheet').classList.remove('open');
+  document.getElementById('bsOverlay').classList.remove('open');
+  bsIdx=null;
+}
+function bsEdit(){const idx=bsIdx;closeBs();setTimeout(()=>openTxnModal(idx),180);}
+function bsDel(){
+  if(bsIdx===null)return;
+  const idx=bsIdx;closeBs();
+  setTimeout(()=>{
+    if(!confirm('이 내역을 삭제할까요?'))return;
+    BUDGET[curBudgetMonth].txns.splice(idx,1);renderTxns();toast('삭제됐어요');
+  },180);
+}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(o=>o.classList.remove('open'));});
@@ -965,7 +1065,7 @@ function openTxnModal(idx=null){
   setTimeout(()=>document.getElementById(editTxnIdx===null?'f-date':'f-desc').focus(),80);
 }
 function saveTxn(){
-  const date=document.getElementById('f-date').value.trim();
+  const date=fmtDay(document.getElementById('f-date').value.trim());
   const desc=document.getElementById('f-desc').value.trim();
   const amt=parseInt(document.getElementById('f-amt').value)||0;
   const cat=document.getElementById('f-cat').value;
