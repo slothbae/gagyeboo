@@ -1127,7 +1127,8 @@ document.addEventListener('focusin',e=>{
   }
 });
 
-let curBudgetMonth='3월', curAssetMonth='3월';
+const _curMonth = MONTH_LIST[new Date().getMonth()];
+let curBudgetMonth=_curMonth, curAssetMonth=_curMonth;
 let donutChart=null, editTxnIdx=null;
 let editCashIdx=null, editStockOwner=null, editStockIdx=null, editRealtyIdx=null;
 
@@ -1561,9 +1562,10 @@ function renderStocks(){
       const tr=document.createElement('tr');
       tr.style.cursor='pointer';
       tr.innerHTML=`<td><span style="font-size:0.68rem;padding:1px 6px;border-radius:3px;${acctStyle}">${r.acct}</span></td><td>${r.name}</td><td class="num-cell editable-cell" data-field="buy" style="cursor:text;">${r.buy?c(r.buy)+'원':'—'}</td><td class="num-cell editable-cell" data-field="cur" style="cursor:text;">${r.cur?c(r.cur)+'원':'—'}</td><td class="num-cell">${fmtRate(r.buy,r.cur)}</td><td class="action-cell"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
-      // 평단/현재가 인라인 편집
+      // 평단/현재가 인라인 편집 (데스크탑만), 모바일은 행 클릭으로 모달
       tr.querySelectorAll('.editable-cell').forEach(td=>{
         td.addEventListener('click', e=>{
+          if(window.innerWidth<=600){ e.stopPropagation(); openStockModal(who,i); return; }
           e.stopPropagation();
           if(td.querySelector('input')) return;
           const field = td.dataset.field;
@@ -1582,9 +1584,9 @@ function renderStocks(){
       });
       tr.querySelector('.btn-edit').onclick=()=>openStockModal(who,i);
       tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;(who==='hj'?ASSETS[m].stock_hj:ASSETS[m].stock_yh).splice(i,1);saveAssets();renderAssets();toast('삭제됐어요');};
-      // 모바일: 행 클릭 → 수정 모달
+      // 모바일: 행 어디든 클릭 → 수정 모달
       tr.addEventListener('click', e=>{
-        if(window.innerWidth<=600 && !e.target.closest('.editable-cell') && !e.target.closest('.action-cell')) openStockModal(who,i);
+        if(window.innerWidth<=600 && !e.target.closest('.action-cell')) openStockModal(who,i);
       });
       tb.appendChild(tr);
     });
@@ -1772,7 +1774,7 @@ function showPage(page){
 }
 
 // ═══════════ CASHFLOW ═══════════
-let curCfMonth = '3월';
+let curCfMonth = _curMonth;
 let editCfTxnIdx = null, editCfTxnType = null;
 let editCfFixedKey = null;
 let editCfAssetKey = null; // null = 신규
