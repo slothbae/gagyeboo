@@ -6,10 +6,9 @@
 <title>2026 가족 가계부</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyC1NlBkl0JFkh_fanTckJfl4KbGDeIlqdk",
   authDomain: "gagyeboo-b0944.firebaseapp.com",
@@ -18,54 +17,50 @@ const firebaseConfig = {
   messagingSenderId: "474555074344",
   appId: "1:474555074344:web:381928a591f28774f8721d"
 };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-window._db = db;
-
-// Firestore 저장 함수
 window.saveToFirestore = async function(collection, docId, data) {
   try {
-    await setDoc(doc(db, collection, docId), data);
+    await db.collection(collection).doc(docId).set(data);
   } catch(e) {
     console.error('저장 실패:', e);
   }
 };
 
-// 초기 데이터 로드
 window.loadFromFirestore = async function() {
   const loadingEl = document.getElementById('loadingOverlay');
   if(loadingEl) loadingEl.style.display = 'flex';
   try {
-    // BUDGET 로드
-    const budgetDoc = await getDoc(doc(db, 'gagyeboo', 'budget'));
-    if(budgetDoc.exists()) {
+    const budgetDoc = await db.collection('gagyeboo').doc('budget').get();
+    if(budgetDoc.exists) {
       const data = budgetDoc.data();
       Object.keys(data).forEach(m => { if(BUDGET[m]) BUDGET[m] = data[m]; });
     }
-    // ASSETS 로드
-    const assetsDoc = await getDoc(doc(db, 'gagyeboo', 'assets'));
-    if(assetsDoc.exists()) {
+    const assetsDoc = await db.collection('gagyeboo').doc('assets').get();
+    if(assetsDoc.exists) {
       const data = assetsDoc.data();
       Object.keys(data).forEach(m => { if(ASSETS[m]) ASSETS[m] = data[m]; });
     }
-    // CASHFLOW 로드
-    const cfDoc = await getDoc(doc(db, 'gagyeboo', 'cashflow'));
-    if(cfDoc.exists()) {
+    const cfDoc = await db.collection('gagyeboo').doc('cashflow').get();
+    if(cfDoc.exists) {
       const data = cfDoc.data();
-      Object.keys(data).forEach(m => { if(CASHFLOW[m]) { CASHFLOW[m].income = data[m].income||{}; CASHFLOW[m].asset_forming = data[m].asset_forming||{}; } });
+      Object.keys(data).forEach(m => {
+        if(CASHFLOW[m]) {
+          CASHFLOW[m].income = data[m].income || {};
+          CASHFLOW[m].asset_forming = data[m].asset_forming || {};
+        }
+      });
     }
   } catch(e) {
     console.error('로드 실패:', e);
   }
   if(loadingEl) loadingEl.style.display = 'none';
-  // 모든 탭 재렌더링
+  MONTH_LIST.forEach(m => syncCashflowFromBudget(m));
   buildBudgetTabs(); renderMonthly(); updateTotalWidget();
   buildCfMonthTabs(); renderCashflow();
-  MONTH_LIST.forEach(m => syncCashflowFromBudget(m));
 };
 
-// 페이지 로드 후 데이터 불러오기
 window.addEventListener('load', () => window.loadFromFirestore());
 </script>
 <style>
