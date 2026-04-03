@@ -281,7 +281,7 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
 .cf-item{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;position:relative;transition:box-shadow .15s;}
 .cf-item:hover{box-shadow:0 0 0 2px rgba(124,106,247,0.35);}
 .cf-item label{display:block;font-size:0.68rem;color:var(--muted);font-weight:600;margin-bottom:4px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cf-item-val{font-size:1.05rem;font-weight:800;font-family:'DM Mono',monospace;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cf-item-val{font-size:0.82rem;font-weight:800;font-family:'DM Mono',monospace;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cf-item-val.green{color:var(--green);}
 .cf-item-val.accent{color:var(--accent);}
 .cf-item-actions{display:none;position:absolute;inset:0;background:rgba(255,255,255,0.97);border-radius:10px;border:1.5px solid var(--accent);flex-direction:column;align-items:center;justify-content:center;gap:6px;z-index:10;padding:6px;}
@@ -300,6 +300,12 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
   .cf-row{grid-template-columns:1fr;}
   .cf-items-grid{flex-wrap:nowrap;}
   .cf-subgrid{flex-wrap:nowrap;}
+}
+@media(max-width:600px){
+  /* 현금흐름 아이템: 모바일에서 3개씩 줄바꿈 */
+  .cf-items-grid{flex-wrap:wrap !important;overflow:visible !important;}
+  .cf-item{flex:0 0 calc(33.333% - 6px) !important;min-width:0 !important;}
+  .cf-subgrid{flex-wrap:nowrap !important;}
 }
 
 /* 행 레이아웃 */
@@ -1509,9 +1515,16 @@ function renderCash(){
     }
     const tr=document.createElement('tr');
     tr.style.cursor='pointer';
-    tr.innerHTML=`<td><span class="name-tag tag-${r.owner}">${r.owner}</span></td><td>${r.type}</td><td>${r.bank}</td><td class="num-cell">${r.amt>0?c(r.amt)+'원':'<span style="color:var(--muted)">미입력</span>'}</td><td class="num-cell">${diffHtml}</td><td class="num-cell">${rateHtml}</td><td class="action-cell"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
+    tr.innerHTML=`<td><span class="name-tag tag-${r.owner}">${r.owner}</span></td><td>${r.type}</td><td>${r.bank}</td><td class="num-cell">${r.amt>0?c(r.amt)+'원':'<span style="color:var(--muted)">미입력</span>'}</td><td class="num-cell">${diffHtml}</td><td class="num-cell">${rateHtml}</td><td class="action-cell">
+      <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);" title="위로">◀</button>
+      <button class="btn-sm btn-edit">수정</button>
+      <button class="btn-sm btn-del">삭제</button>
+      <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);" title="아래로">▶</button>
+    </td>`;
+    tr.querySelectorAll('.action-cell button')[0].onclick=(e)=>{e.stopPropagation();if(i===0)return;const arr=ASSETS[m].cash;[arr[i-1],arr[i]]=[arr[i],arr[i-1]];saveAssets();renderCash();};
     tr.querySelector('.btn-edit').onclick=(e)=>{e.stopPropagation();openCashModal(i);};
-    tr.querySelector('.btn-del').onclick=(e)=>{e.stopPropagation();if(!confirm('삭제할까요?'))return;ASSETS[m].cash.splice(i,1);renderAssets();toast('삭제됐어요');};
+    tr.querySelector('.btn-del').onclick=(e)=>{e.stopPropagation();if(!confirm('삭제할까요?'))return;ASSETS[m].cash.splice(i,1);saveAssets();renderAssets();toast('삭제됐어요');};
+    tr.querySelectorAll('.action-cell button')[3].onclick=(e)=>{e.stopPropagation();if(i===rows.length-1)return;const arr=ASSETS[m].cash;[arr[i],arr[i+1]]=[arr[i+1],arr[i]];saveAssets();renderCash();};
     // 행 클릭 → 모바일에서도 수정 모달
     tr.addEventListener('click',()=>openCashModal(i));
     tb.appendChild(tr);
@@ -1535,9 +1548,17 @@ function renderStocks(){
     rows.forEach((r,i)=>{
       const acctStyle=r.acct==='ISA'?'background:rgba(247,165,106,0.12);color:#c06010':'background:rgba(124,106,247,0.1);color:var(--accent)';
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td><span style="font-size:0.68rem;padding:1px 6px;border-radius:3px;${acctStyle}">${r.acct}</span></td><td>${r.name}</td><td class="num-cell">${r.buy?c(r.buy)+'원':'—'}</td><td class="num-cell">${r.cur?c(r.cur)+'원':'—'}</td><td class="num-cell">${fmtRate(r.buy,r.cur)}</td><td class="action-cell"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
+      tr.innerHTML=`<td><span style="font-size:0.68rem;padding:1px 6px;border-radius:3px;${acctStyle}">${r.acct}</span></td><td>${r.name}</td><td class="num-cell">${r.buy?c(r.buy)+'원':'—'}</td><td class="num-cell">${r.cur?c(r.cur)+'원':'—'}</td><td class="num-cell">${fmtRate(r.buy,r.cur)}</td><td class="action-cell">
+        <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);">◀</button>
+        <button class="btn-sm btn-edit">수정</button>
+        <button class="btn-sm btn-del">삭제</button>
+        <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);">▶</button>
+      </td>`;
+      const arr2 = who==='hj'?ASSETS[m].stock_hj:ASSETS[m].stock_yh;
+      tr.querySelectorAll('.action-cell button')[0].onclick=()=>{if(i===0)return;[arr2[i-1],arr2[i]]=[arr2[i],arr2[i-1]];saveAssets();renderStocks();};
       tr.querySelector('.btn-edit').onclick=()=>openStockModal(who,i);
-      tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;(who==='hj'?ASSETS[m].stock_hj:ASSETS[m].stock_yh).splice(i,1);renderAssets();toast('삭제됐어요');};
+      tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;arr2.splice(i,1);saveAssets();renderAssets();toast('삭제됐어요');};
+      tr.querySelectorAll('.action-cell button')[3].onclick=()=>{if(i===rows.length-1)return;[arr2[i],arr2[i+1]]=[arr2[i+1],arr2[i]];saveAssets();renderStocks();};
       tb.appendChild(tr);
     });
     const total=rows.reduce((s,r)=>s+r.cur,0);
@@ -1564,9 +1585,16 @@ function renderRealty(){
     let diffHtml='<span style="color:var(--muted)">—</span>';
     if(diff!=null&&diff!==0){diffHtml=diff>0?`<span class="pos">+${c(diff)}원</span>`:`<span class="neg">${c(diff)}원</span>`;}
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${r.name}</td><td style="color:var(--muted)">${r.note||''}</td><td class="num-cell">${c(r.amt)}원</td><td class="num-cell">${diffHtml}</td><td class="action-cell"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
+    tr.innerHTML=`<td>${r.name}</td><td style="color:var(--muted)">${r.note||''}</td><td class="num-cell">${c(r.amt)}원</td><td class="num-cell">${diffHtml}</td><td class="action-cell">
+      <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);">◀</button>
+      <button class="btn-sm btn-edit">수정</button>
+      <button class="btn-sm btn-del">삭제</button>
+      <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);">▶</button>
+    </td>`;
+    tr.querySelectorAll('.action-cell button')[0].onclick=()=>{if(i===0)return;[rows[i-1],rows[i]]=[rows[i],rows[i-1]];saveAssets();renderRealty();};
     tr.querySelector('.btn-edit').onclick=()=>openRealtyModal(i);
-    tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;ASSETS[m].realty.splice(i,1);renderAssets();toast('삭제됐어요');};
+    tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;ASSETS[m].realty.splice(i,1);saveAssets();renderAssets();toast('삭제됐어요');};
+    tr.querySelectorAll('.action-cell button')[3].onclick=()=>{if(i===rows.length-1)return;[rows[i],rows[i+1]]=[rows[i+1],rows[i]];saveAssets();renderRealty();};
     tb.appendChild(tr);
   });
   const total=rows.reduce((s,r)=>s+r.amt,0);
@@ -1782,19 +1810,27 @@ function renderCashflow(){
 
   // ── 소득 아이템 렌더 ──
   const ig = document.getElementById('cfIncomeGrid'); ig.innerHTML = '';
-  Object.entries(CASHFLOW[m].income).forEach(([k,v]) => {
+  const incKeys = Object.keys(CASHFLOW[m].income);
+  incKeys.forEach((k,idx) => {
+    const v = CASHFLOW[m].income[k];
     ig.appendChild(makeCfItem(k, fmtW(v), 'green',
       () => openCfIncomeModal(k, 'income'),
-      () => { if(!confirm(`'${k}' 소득 항목을 삭제할까요?`)) return; delete CASHFLOW[curCfMonth].income[k]; renderCashflow(); toast('삭제됐어요'); }
+      () => { if(!confirm(`'${k}' 소득 항목을 삭제할까요?`)) return; delete CASHFLOW[curCfMonth].income[k]; saveCashflow(); renderCashflow(); toast('삭제됐어요'); },
+      idx > 0 ? () => { CASHFLOW[curCfMonth].income = moveObjKey(CASHFLOW[curCfMonth].income, k, 'left'); saveCashflow(); renderCashflow(); } : null,
+      idx < incKeys.length-1 ? () => { CASHFLOW[curCfMonth].income = moveObjKey(CASHFLOW[curCfMonth].income, k, 'right'); saveCashflow(); renderCashflow(); } : null
     ));
   });
 
   // ── 자산형성 아이템 렌더 ──
   const ag = document.getElementById('cfAssetGrid'); ag.innerHTML = '';
-  Object.entries(CASHFLOW[m].asset_forming).forEach(([k,v]) => {
+  const afKeys = Object.keys(CASHFLOW[m].asset_forming);
+  afKeys.forEach((k,idx) => {
+    const v = CASHFLOW[m].asset_forming[k];
     ag.appendChild(makeCfItem(k, fmtW(v), 'accent',
       () => openCfAssetModal(k),
-      () => { if(!confirm(`'${k}' 항목을 삭제할까요?`)) return; delete CASHFLOW[curCfMonth].asset_forming[k]; renderCashflow(); toast('삭제됐어요'); }
+      () => { if(!confirm(`'${k}' 항목을 삭제할까요?`)) return; delete CASHFLOW[curCfMonth].asset_forming[k]; saveCashflow(); renderCashflow(); toast('삭제됐어요'); },
+      idx > 0 ? () => { CASHFLOW[curCfMonth].asset_forming = moveObjKey(CASHFLOW[curCfMonth].asset_forming, k, 'left'); saveCashflow(); renderCashflow(); } : null,
+      idx < afKeys.length-1 ? () => { CASHFLOW[curCfMonth].asset_forming = moveObjKey(CASHFLOW[curCfMonth].asset_forming, k, 'right'); saveCashflow(); renderCashflow(); } : null
     ));
   });
 
@@ -1823,7 +1859,7 @@ function renderCashflow(){
 }
 
 // cf-item 생성 헬퍼
-function makeCfItem(label, valText, colorCls, onEdit, onDel){
+function makeCfItem(label, valText, colorCls, onEdit, onDel, onMoveLeft, onMoveRight){
   const div = document.createElement('div');
   div.className = 'cf-item';
   div.innerHTML = `
@@ -1831,9 +1867,15 @@ function makeCfItem(label, valText, colorCls, onEdit, onDel){
     <div class="cf-item-val ${colorCls}">${valText}</div>
     <div class="cf-item-actions">
       <span>${label}</span>
-      <div class="btns">
-        <button class="btn-sm btn-edit" style="padding:4px 11px;">수정</button>
-        <button class="btn-sm btn-del" style="padding:4px 11px;">삭제</button>
+      <div class="btns" style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+        <div style="display:flex;gap:4px;">
+          <button class="btn-sm btn-edit" style="padding:3px 8px;">수정</button>
+          <button class="btn-sm btn-del" style="padding:3px 8px;">삭제</button>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-sm" style="padding:3px 10px;background:var(--surface);color:var(--muted);border:1px solid var(--border);" data-move="left">◀</button>
+          <button class="btn-sm" style="padding:3px 10px;background:var(--surface);color:var(--muted);border:1px solid var(--border);" data-move="right">▶</button>
+        </div>
       </div>
     </div>
   `;
@@ -1845,9 +1887,30 @@ function makeCfItem(label, valText, colorCls, onEdit, onDel){
   });
   div.querySelector('.btn-edit').onclick = e => { e.stopPropagation(); closeAllCfCardActions(); onEdit(); };
   div.querySelector('.btn-del').onclick = e => { e.stopPropagation(); closeAllCfCardActions(); onDel(); };
+  div.querySelector('[data-move="left"]').onclick = e => { e.stopPropagation(); closeAllCfCardActions(); if(onMoveLeft) onMoveLeft(); };
+  div.querySelector('[data-move="right"]').onclick = e => { e.stopPropagation(); closeAllCfCardActions(); if(onMoveRight) onMoveRight(); };
   div.addEventListener('mouseenter', ()=>{ if(actions.style.display==='none') div.style.boxShadow='0 0 0 2px rgba(124,106,247,0.35)'; });
   div.addEventListener('mouseleave', ()=>{ if(actions.style.display==='none') div.style.boxShadow=''; });
   return div;
+}
+
+// 객체 키 순서 이동 헬퍼
+function moveObjKey(obj, key, dir){
+  const keys = Object.keys(obj);
+  const idx = keys.indexOf(key);
+  const newIdx = dir === 'left' ? idx - 1 : idx + 1;
+  if(newIdx < 0 || newIdx >= keys.length) return obj;
+  const newObj = {};
+  keys.forEach((k, i) => {
+    if(i === Math.min(idx, newIdx)){
+      const a = dir==='left' ? key : keys[newIdx];
+      const b = dir==='left' ? keys[newIdx] : key;
+      newObj[a] = obj[a]; newObj[b] = obj[b];
+    } else if(k !== key && k !== keys[newIdx]){
+      newObj[k] = obj[k];
+    }
+  });
+  return newObj;
 }
 
 // 모든 카드 팝오버 닫기
