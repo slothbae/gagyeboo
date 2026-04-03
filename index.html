@@ -1516,16 +1516,9 @@ function renderCash(){
     }
     const tr=document.createElement('tr');
     tr.style.cursor='pointer';
-    tr.innerHTML=`<td><span class="name-tag tag-${r.owner}">${r.owner}</span></td><td>${r.type}</td><td>${r.bank}</td><td class="num-cell">${r.amt>0?c(r.amt)+'원':'<span style="color:var(--muted)">미입력</span>'}</td><td class="num-cell">${diffHtml}</td><td class="num-cell">${rateHtml}</td><td class="action-cell">
-      <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);" title="위로">◀</button>
-      <button class="btn-sm btn-edit">수정</button>
-      <button class="btn-sm btn-del">삭제</button>
-      <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);" title="아래로">▶</button>
-    </td>`;
-    tr.querySelectorAll('.action-cell button')[0].onclick=(e)=>{e.stopPropagation();if(i===0)return;const arr=ASSETS[m].cash;[arr[i-1],arr[i]]=[arr[i],arr[i-1]];saveAssets();renderCash();};
+    tr.innerHTML=`<td><span class="name-tag tag-${r.owner}">${r.owner}</span></td><td>${r.type}</td><td>${r.bank}</td><td class="num-cell">${r.amt>0?c(r.amt)+'원':'<span style="color:var(--muted)">미입력</span>'}</td><td class="num-cell">${diffHtml}</td><td class="num-cell">${rateHtml}</td><td class="action-cell"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
     tr.querySelector('.btn-edit').onclick=(e)=>{e.stopPropagation();openCashModal(i);};
     tr.querySelector('.btn-del').onclick=(e)=>{e.stopPropagation();if(!confirm('삭제할까요?'))return;ASSETS[m].cash.splice(i,1);saveAssets();renderAssets();toast('삭제됐어요');};
-    tr.querySelectorAll('.action-cell button')[3].onclick=(e)=>{e.stopPropagation();if(i===rows.length-1)return;const arr=ASSETS[m].cash;[arr[i],arr[i+1]]=[arr[i+1],arr[i]];saveAssets();renderCash();};
     // 행 클릭 → 모바일에서도 수정 모달
     tr.addEventListener('click',()=>openCashModal(i));
     tb.appendChild(tr);
@@ -1549,17 +1542,9 @@ function renderStocks(){
     rows.forEach((r,i)=>{
       const acctStyle=r.acct==='ISA'?'background:rgba(247,165,106,0.12);color:#c06010':'background:rgba(124,106,247,0.1);color:var(--accent)';
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td><span style="font-size:0.68rem;padding:1px 6px;border-radius:3px;${acctStyle}">${r.acct}</span></td><td>${r.name}</td><td class="num-cell">${r.buy?c(r.buy)+'원':'—'}</td><td class="num-cell">${r.cur?c(r.cur)+'원':'—'}</td><td class="num-cell">${fmtRate(r.buy,r.cur)}</td><td class="action-cell">
-        <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);">◀</button>
-        <button class="btn-sm btn-edit">수정</button>
-        <button class="btn-sm btn-del">삭제</button>
-        <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);">▶</button>
-      </td>`;
-      const arr2 = who==='hj'?ASSETS[m].stock_hj:ASSETS[m].stock_yh;
-      tr.querySelectorAll('.action-cell button')[0].onclick=()=>{if(i===0)return;[arr2[i-1],arr2[i]]=[arr2[i],arr2[i-1]];saveAssets();renderStocks();};
+      tr.innerHTML=`<td><span style="font-size:0.68rem;padding:1px 6px;border-radius:3px;${acctStyle}">${r.acct}</span></td><td>${r.name}</td><td class="num-cell">${r.buy?c(r.buy)+'원':'—'}</td><td class="num-cell">${r.cur?c(r.cur)+'원':'—'}</td><td class="num-cell">${fmtRate(r.buy,r.cur)}</td><td class="action-cell"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
       tr.querySelector('.btn-edit').onclick=()=>openStockModal(who,i);
-      tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;arr2.splice(i,1);saveAssets();renderAssets();toast('삭제됐어요');};
-      tr.querySelectorAll('.action-cell button')[3].onclick=()=>{if(i===rows.length-1)return;[arr2[i],arr2[i+1]]=[arr2[i+1],arr2[i]];saveAssets();renderStocks();};
+      tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;(who==='hj'?ASSETS[m].stock_hj:ASSETS[m].stock_yh).splice(i,1);saveAssets();renderAssets();toast('삭제됐어요');};
       tb.appendChild(tr);
     });
     const total=rows.reduce((s,r)=>s+r.cur,0);
@@ -1586,16 +1571,9 @@ function renderRealty(){
     let diffHtml='<span style="color:var(--muted)">—</span>';
     if(diff!=null&&diff!==0){diffHtml=diff>0?`<span class="pos">+${c(diff)}원</span>`:`<span class="neg">${c(diff)}원</span>`;}
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${r.name}</td><td style="color:var(--muted)">${r.note||''}</td><td class="num-cell">${c(r.amt)}원</td><td class="num-cell">${diffHtml}</td><td class="action-cell">
-      <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);">◀</button>
-      <button class="btn-sm btn-edit">수정</button>
-      <button class="btn-sm btn-del">삭제</button>
-      <button class="btn-sm" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);">▶</button>
-    </td>`;
-    tr.querySelectorAll('.action-cell button')[0].onclick=()=>{if(i===0)return;[rows[i-1],rows[i]]=[rows[i],rows[i-1]];saveAssets();renderRealty();};
+    tr.innerHTML=`<td>${r.name}</td><td style="color:var(--muted)">${r.note||''}</td><td class="num-cell">${c(r.amt)}원</td><td class="num-cell">${diffHtml}</td><td class="action-cell"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
     tr.querySelector('.btn-edit').onclick=()=>openRealtyModal(i);
     tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;ASSETS[m].realty.splice(i,1);saveAssets();renderAssets();toast('삭제됐어요');};
-    tr.querySelectorAll('.action-cell button')[3].onclick=()=>{if(i===rows.length-1)return;[rows[i],rows[i+1]]=[rows[i+1],rows[i]];saveAssets();renderRealty();};
     tb.appendChild(tr);
   });
   const total=rows.reduce((s,r)=>s+r.amt,0);
