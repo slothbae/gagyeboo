@@ -6,6 +6,68 @@
 <title>2026 가족 가계부</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC1NlBkl0JFkh_fanTckJfl4KbGDeIlqdk",
+  authDomain: "gagyeboo-b0944.firebaseapp.com",
+  projectId: "gagyeboo-b0944",
+  storageBucket: "gagyeboo-b0944.firebasestorage.app",
+  messagingSenderId: "474555074344",
+  appId: "1:474555074344:web:381928a591f28774f8721d"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window._db = db;
+
+// Firestore 저장 함수
+window.saveToFirestore = async function(collection, docId, data) {
+  try {
+    await setDoc(doc(db, collection, docId), data);
+  } catch(e) {
+    console.error('저장 실패:', e);
+  }
+};
+
+// 초기 데이터 로드
+window.loadFromFirestore = async function() {
+  const loadingEl = document.getElementById('loadingOverlay');
+  if(loadingEl) loadingEl.style.display = 'flex';
+  try {
+    // BUDGET 로드
+    const budgetDoc = await getDoc(doc(db, 'gagyeboo', 'budget'));
+    if(budgetDoc.exists()) {
+      const data = budgetDoc.data();
+      Object.keys(data).forEach(m => { if(BUDGET[m]) BUDGET[m] = data[m]; });
+    }
+    // ASSETS 로드
+    const assetsDoc = await getDoc(doc(db, 'gagyeboo', 'assets'));
+    if(assetsDoc.exists()) {
+      const data = assetsDoc.data();
+      Object.keys(data).forEach(m => { if(ASSETS[m]) ASSETS[m] = data[m]; });
+    }
+    // CASHFLOW 로드
+    const cfDoc = await getDoc(doc(db, 'gagyeboo', 'cashflow'));
+    if(cfDoc.exists()) {
+      const data = cfDoc.data();
+      Object.keys(data).forEach(m => { if(CASHFLOW[m]) { CASHFLOW[m].income = data[m].income||{}; CASHFLOW[m].asset_forming = data[m].asset_forming||{}; } });
+    }
+  } catch(e) {
+    console.error('로드 실패:', e);
+  }
+  if(loadingEl) loadingEl.style.display = 'none';
+  // 모든 탭 재렌더링
+  buildBudgetTabs(); renderMonthly(); updateTotalWidget();
+  buildCfMonthTabs(); renderCashflow();
+  MONTH_LIST.forEach(m => syncCashflowFromBudget(m));
+};
+
+// 페이지 로드 후 데이터 불러오기
+window.addEventListener('load', () => window.loadFromFirestore());
+</script>
 <style>
 :root{--bg:#f8f8fc;--surface:#f0f0f6;--card:#fff;--border:#e4e4ef;--accent:#7c6af7;--accent2:#f7a56a;--text:#1a1a2e;--muted:#8888a0;--green:#16a666;--red:#e84040;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -392,6 +454,12 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
 </head>
 <body>
 <div class="wrapper">
+  <!-- 로딩 오버레이 -->
+  <div id="loadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px;backdrop-filter:blur(4px);">
+    <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;"></div>
+    <div style="font-size:0.85rem;color:var(--muted);font-weight:500;">데이터 불러오는 중...</div>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
   <header>
     <div class="header-left">
       <h1>2026 가족 가계부</h1>
@@ -1182,7 +1250,7 @@ function renderTxns(){
     // 데스크톱: 셀 클릭 / 버튼 클릭
     tr.querySelectorAll('.editable-cell').forEach(td=>td.addEventListener('click',()=>{if(window.innerWidth>600)openTxnModal(i);}));
     tr.querySelector('.btn-edit').onclick=()=>openTxnModal(i);
-    tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;BUDGET[curBudgetMonth].txns.splice(i,1);syncCashflowFromBudget(curBudgetMonth);renderMonthly();toast('삭제됐어요');};
+    tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;BUDGET[curBudgetMonth].txns.splice(i,1);syncCashflowFromBudget(curBudgetMonth);saveBudget();renderMonthly();toast('삭제됐어요');};
     // 모바일: 행 클릭 → 바텀시트
     tr.addEventListener('click',e=>{
       if(window.innerWidth<=600){e.stopPropagation();openBs(i);}
@@ -1547,7 +1615,7 @@ function bsDel(){
   const idx=bsIdx;closeBs();
   setTimeout(()=>{
     if(!confirm('이 내역을 삭제할까요?'))return;
-    BUDGET[curBudgetMonth].txns.splice(idx,1);syncCashflowFromBudget(curBudgetMonth);renderMonthly();toast('삭제됐어요');
+    BUDGET[curBudgetMonth].txns.splice(idx,1);syncCashflowFromBudget(curBudgetMonth);saveBudget();renderMonthly();toast('삭제됐어요');
   },180);
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -1576,6 +1644,7 @@ function saveTxn(){
   else{const t=BUDGET[curBudgetMonth].txns[editTxnIdx];t.date=date;t.desc=desc;t.amt=amt;t.cat=cat;toast('수정됐어요 ✓');}
   BUDGET[curBudgetMonth].txns.sort((a,b)=>parseDateNum(a.date)-parseDateNum(b.date));
   syncCashflowFromBudget(curBudgetMonth);
+  saveBudget();
   closeModal('txnModal');renderMonthly();
 }
 
@@ -1598,6 +1667,7 @@ function saveCash(){
   if(!type||!bank||!amt){alert('모든 항목을 입력해주세요');return;}
   if(editCashIdx===null){ASSETS[curAssetMonth].cash.push({owner,type,bank,amt});toast('계좌 추가됐어요 ✓');}
   else{const r=ASSETS[curAssetMonth].cash[editCashIdx];r.owner=owner;r.type=type;r.bank=bank;r.amt=amt;toast('수정됐어요 ✓');}
+  saveAssets();
   closeModal('cashModal');renderAssets();
 }
 
@@ -1622,6 +1692,7 @@ function saveStock(){
   const arr=editStockOwner==='hj'?ASSETS[curAssetMonth].stock_hj:ASSETS[curAssetMonth].stock_yh;
   if(editStockIdx===null){arr.push({acct,name,buy,cur});toast('종목 추가됐어요 ✓');}
   else{const r=arr[editStockIdx];r.acct=acct;r.name=name;r.buy=buy;r.cur=cur;toast('수정됐어요 ✓');}
+  saveAssets();
   closeModal('stockModal');renderAssets();
 }
 
@@ -1642,6 +1713,7 @@ function saveRealty(){
   if(!name||!amt){alert('구분명과 금액을 입력해주세요');return;}
   if(editRealtyIdx===null){ASSETS[curAssetMonth].realty.push({name,note,amt});toast('추가됐어요 ✓');}
   else{const r=ASSETS[curAssetMonth].realty[editRealtyIdx];r.name=name;r.note=note;r.amt=amt;toast('수정됐어요 ✓');}
+  saveAssets();
   closeModal('realtyModal');renderAssets();
 }
 
@@ -1820,6 +1892,7 @@ function saveCfIncomeItem(){
     delete CASHFLOW[curCfMonth][editCfIncomeSection][editCfIncomeKey];
   }
   CASHFLOW[curCfMonth][editCfIncomeSection][name] = amt;
+  saveCashflow();
   closeModal('cfIncomeModal'); renderCashflow(); toast('저장됐어요 ✓');
 }
 
@@ -1890,6 +1963,7 @@ function saveCfAsset(){
     delete CASHFLOW[curCfMonth].asset_forming[editCfAssetKey];
   }
   CASHFLOW[curCfMonth].asset_forming[name] = amt;
+  saveCashflow();
   closeModal('cfAssetModal'); renderCashflow(); toast('저장됐어요 ✓');
 }
 
@@ -1941,6 +2015,15 @@ function saveCfTxn(){
   // 날짜 오름차순 정렬
   arr.sort((a,b) => parseDateNum(a.date) - parseDateNum(b.date));
   closeModal('cfTxnModal'); renderCashflow();
+}
+
+// ── Firestore 자동 저장 헬퍼 ──
+function saveBudget(){ if(window.saveToFirestore) window.saveToFirestore('gagyeboo','budget', JSON.parse(JSON.stringify(BUDGET))); }
+function saveAssets(){ if(window.saveToFirestore) window.saveToFirestore('gagyeboo','assets', JSON.parse(JSON.stringify(ASSETS))); }
+function saveCashflow(){
+  const cfSave = {};
+  MONTH_LIST.forEach(m => { cfSave[m] = { income: CASHFLOW[m].income, asset_forming: CASHFLOW[m].asset_forming }; });
+  if(window.saveToFirestore) window.saveToFirestore('gagyeboo','cashflow', cfSave);
 }
 
 // INIT
