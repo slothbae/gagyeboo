@@ -302,9 +302,9 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
   .cf-subgrid{flex-wrap:nowrap;}
 }
 @media(max-width:600px){
-  /* 현금흐름 아이템: 모바일에서 3개씩 줄바꿈 */
+  /* 현금흐름 아이템: 모바일에서 2개씩 줄바꿈 */
   .cf-items-grid{flex-wrap:wrap !important;overflow:visible !important;}
-  .cf-item{flex:0 0 calc(33.333% - 6px) !important;min-width:0 !important;}
+  .cf-item{flex:0 0 calc(50% - 4px) !important;min-width:0 !important;}
   .cf-subgrid{flex-wrap:nowrap !important;}
 }
 
@@ -364,13 +364,14 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
   .income-item{padding:8px 10px;}
   /* 현금흐름 패널 모바일 */
   .cf-row{gap:10px;margin-bottom:10px;}
-  .cf-panel{padding:14px 14px;}
+  .cf-panel{padding:14px 12px;}
   .cf-panel-total{font-size:1rem;margin-bottom:10px;}
   .cf-final-panel{padding:18px 16px;}
   .cf-final-val{font-size:1.5rem;}
-  .cf-items-grid{gap:6px;}
-  .cf-item{padding:10px 10px;}
-  .cf-item-val{font-size:0.82rem;}
+  .cf-items-grid{gap:5px;}
+  .cf-item{padding:8px 8px;}
+  .cf-item label{font-size:0.62rem;}
+  .cf-item-val{font-size:0.72rem;}
   .cf-subgrid{gap:6px;}
   .cf-subbox{padding:10px 10px;}
   .cf-subbox-val{font-size:0.9rem;}
@@ -542,7 +543,7 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
       <!-- 소득 패널 -->
       <div class="cf-panel" id="cfIncomePanel">
         <div class="cf-panel-header">
-          <span class="cf-panel-title">이달 총 소득</span>
+          <span class="cf-panel-title">소득 합계</span>
           <button class="cf-add-btn" id="cfIncomeAddBtn" title="소득 추가">＋</button>
         </div>
         <div class="cf-panel-total green" id="cfIncomeTotalLabel">—</div>
