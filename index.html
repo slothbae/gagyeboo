@@ -57,6 +57,12 @@ window.loadFromFirestore = async function() {
   }
   if(loadingEl) loadingEl.style.display = 'none';
   MONTH_LIST.forEach(m => syncCashflowFromBudget(m));
+  // Firestore에서 불러온 CASHFLOW.income을 BUDGET.income에도 반영
+  MONTH_LIST.forEach(m => {
+    if(CASHFLOW[m].income && Object.keys(CASHFLOW[m].income).length > 0){
+      BUDGET[m].income = {...CASHFLOW[m].income};
+    }
+  });
   buildBudgetTabs(); renderMonthly(); updateTotalWidget();
   buildCfMonthTabs(); renderCashflow();
 };
@@ -1116,7 +1122,10 @@ function fmtDay(dateStr){
 function updateIncome(el,month,key){
   const raw=parseInt(el.value.replace(/,/g,''))||0;
   BUDGET[month].income[key]=raw;
+  // CASHFLOW.income 동기화 → 현금흐름 탭에 반영
+  CASHFLOW[month].income[key]=raw;
   el.value=raw.toLocaleString('ko-KR');
+  saveBudget(); saveCashflow();
   renderMonthly();toast('소득 수정됐어요 ✓');
 }
 // On focus: strip commas so user can type plain number
@@ -1837,7 +1846,7 @@ function renderCashflow(){
     const v = CASHFLOW[m].income[k];
     ig.appendChild(makeCfItem(k, fmtW(v), 'green',
       () => openCfIncomeModal(k, 'income'),
-      () => { if(!confirm(`'${k}' 소득 항목을 삭제할까요?`)) return; delete CASHFLOW[curCfMonth].income[k]; saveCashflow(); renderCashflow(); toast('삭제됐어요'); },
+      () => { if(!confirm(`'${k}' 소득 항목을 삭제할까요?`)) return; delete CASHFLOW[curCfMonth].income[k]; delete BUDGET[curCfMonth].income[k]; saveCashflow(); saveBudget(); renderCashflow(); toast('삭제됐어요'); },
       idx > 0 ? () => { CASHFLOW[curCfMonth].income = moveObjKey(CASHFLOW[curCfMonth].income, k, 'left'); saveCashflow(); renderCashflow(); } : null,
       idx < incKeys.length-1 ? () => { CASHFLOW[curCfMonth].income = moveObjKey(CASHFLOW[curCfMonth].income, k, 'right'); saveCashflow(); renderCashflow(); } : null
     ));
@@ -1970,9 +1979,12 @@ function saveCfIncomeItem(){
   if(!amt){ alert('금액을 입력해주세요'); return; }
   if(editCfIncomeKey && editCfIncomeKey !== name){
     delete CASHFLOW[curCfMonth][editCfIncomeSection][editCfIncomeKey];
+    delete BUDGET[curCfMonth].income[editCfIncomeKey];
   }
   CASHFLOW[curCfMonth][editCfIncomeSection][name] = amt;
-  saveCashflow();
+  // BUDGET.income 동기화 → 연간흐름 등 다른 탭에 반영
+  BUDGET[curCfMonth].income[name] = amt;
+  saveCashflow(); saveBudget();
   closeModal('cfIncomeModal'); renderCashflow(); toast('저장됐어요 ✓');
 }
 
@@ -2019,6 +2031,21 @@ function saveCfFixed(){
   const amt  = parseInt(document.getElementById('cffix-amt').value)||0;
   if(!amt){ alert('금액을 입력해주세요'); return; }
   CASHFLOW[curCfMonth].fixed[editCfFixedKey] = {amt, date};
+  // BUDGET.txns 동기화: 해당 고정항목 txn 업데이트 또는 추가
+  const txns = BUDGET[curCfMonth].txns;
+  const existIdx = txns.findIndex(t => FIXED_MATCH[editCfFixedKey](t));
+  const label = editCfFixedKey === '건강보험' ? '현진 건강보험'
+    : editCfFixedKey === '정수기비데' ? '정수기 비데'
+    : editCfFixedKey === '관리비' ? '아파트 관리비' : '가스비';
+  const cat = FIXED_CATS[editCfFixedKey];
+  if(existIdx >= 0){
+    txns[existIdx].amt = amt;
+    txns[existIdx].date = date;
+  } else {
+    txns.push({date, desc: label, amt, cat});
+    txns.sort((a,b) => parseDateNum(a.date) - parseDateNum(b.date));
+  }
+  saveBudget();
   closeModal('cfFixedModal'); renderCashflow(); toast('수정됐어요 ✓');
 }
 
