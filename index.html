@@ -1073,13 +1073,31 @@ const ASSETS = {
     ],
   },
 };
-// 4~12월: 3월 구조 복사 — 명의자/구분/은행/계좌/종목명/평단/부동산명 유지, 잔액/현재가는 0, 부동산은 3월과 동일 금액
-['4월','5월','6월','7월','8월','9월','10월','11월','12월'].forEach(m=>{
-  ASSETS[m]={
-    cash: ASSETS['3월'].cash.map(r=>({...r, amt:0})),
+// 4월 부동산 기준 데이터 (이미지 기준)
+const REALTY_APR = [
+  {name:'더샵디어엘로',    note:'아파트', amt:  810000000},
+  {name:'디어엘로 보증금', note:'보증금', amt: -315000000},
+  {name:'아이파크 보증금', note:'보증금', amt:  294000000},
+  {name:'뽀송이',          note:'차량',   amt:   57000000},
+];
+// 4월 초기화
+ASSETS['4월'] = {
+  cash:     ASSETS['3월'].cash.map(r=>({...r, amt:0})),
+  stock_hj: ASSETS['3월'].stock_hj.map(r=>({...r, cur:0})),
+  stock_yh: ASSETS['3월'].stock_yh.map(r=>({...r, cur:0})),
+  realty:   REALTY_APR.map(r=>({...r})),
+};
+// 5~12월: 4월 부동산 복붙, 뽀송이만 매월 100만원씩 감소
+['5월','6월','7월','8월','9월','10월','11월','12월'].forEach((m, i)=>{
+  const monthOffset = i + 1; // 5월=1, 6월=2, ...
+  ASSETS[m] = {
+    cash:     ASSETS['3월'].cash.map(r=>({...r, amt:0})),
     stock_hj: ASSETS['3월'].stock_hj.map(r=>({...r, cur:0})),
     stock_yh: ASSETS['3월'].stock_yh.map(r=>({...r, cur:0})),
-    realty: ASSETS['3월'].realty.map(r=>({...r})), // 부동산은 3월 금액 그대로
+    realty:   REALTY_APR.map(r=>({
+      ...r,
+      amt: r.name === '뽀송이' ? r.amt - 1000000 * monthOffset : r.amt
+    })),
   };
 });
 
