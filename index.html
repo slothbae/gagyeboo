@@ -40,7 +40,15 @@ window.loadFromFirestore = async function() {
     const assetsDoc = await db.collection('gagyeboo').doc('assets').get();
     if(assetsDoc.exists) {
       const data = assetsDoc.data();
-      Object.keys(data).forEach(m => { if(ASSETS[m]) ASSETS[m] = data[m]; });
+      Object.keys(data).forEach(m => {
+        if(ASSETS[m]) {
+          // realty는 코드 기본값(월별 감가상각) 유지 — Firestore에서 절대 덮어쓰지 않음
+          if(data[m].cash)     ASSETS[m].cash     = data[m].cash;
+          if(data[m].stock_hj) ASSETS[m].stock_hj = data[m].stock_hj;
+          if(data[m].stock_yh) ASSETS[m].stock_yh = data[m].stock_yh;
+          // realty는 항상 코드에서 정의한 값 사용 (뽀송이 감가상각 등)
+        }
+      });
     }
     const cfDoc = await db.collection('gagyeboo').doc('cashflow').get();
     if(cfDoc.exists) {
@@ -2144,7 +2152,19 @@ function saveCfTxn(){
 
 // ── Firestore 자동 저장 헬퍼 ──
 function saveBudget(){ if(window.saveToFirestore) window.saveToFirestore('gagyeboo','budget', JSON.parse(JSON.stringify(BUDGET))); }
-function saveAssets(){ if(window.saveToFirestore) window.saveToFirestore('gagyeboo','assets', JSON.parse(JSON.stringify(ASSETS))); }
+function saveAssets(){
+  if(!window.saveToFirestore) return;
+  // realty는 코드에서 관리하므로 Firestore에 저장하지 않음
+  const assetsSave = {};
+  MONTH_LIST.forEach(m => {
+    assetsSave[m] = {
+      cash:     ASSETS[m].cash,
+      stock_hj: ASSETS[m].stock_hj,
+      stock_yh: ASSETS[m].stock_yh,
+    };
+  });
+  window.saveToFirestore('gagyeboo','assets', JSON.parse(JSON.stringify(assetsSave)));
+}
 function saveCashflow(){
   const cfSave = {};
   MONTH_LIST.forEach(m => { cfSave[m] = { income: CASHFLOW[m].income, asset_forming: CASHFLOW[m].asset_forming }; });
