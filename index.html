@@ -42,11 +42,10 @@ window.loadFromFirestore = async function() {
       const data = assetsDoc.data();
       Object.keys(data).forEach(m => {
         if(ASSETS[m]) {
-          // realty는 코드 기본값(월별 감가상각) 유지 — Firestore에서 절대 덮어쓰지 않음
           if(data[m].cash)     ASSETS[m].cash     = data[m].cash;
           if(data[m].stock_hj) ASSETS[m].stock_hj = data[m].stock_hj;
           if(data[m].stock_yh) ASSETS[m].stock_yh = data[m].stock_yh;
-          // realty는 항상 코드에서 정의한 값 사용 (뽀송이 감가상각 등)
+          if(data[m].realty)   ASSETS[m].realty   = data[m].realty;
         }
       });
     }
@@ -57,6 +56,16 @@ window.loadFromFirestore = async function() {
         if(CASHFLOW[m]) {
           CASHFLOW[m].income = data[m].income || {};
           CASHFLOW[m].asset_forming = data[m].asset_forming || {};
+        }
+      });
+    }
+    const divDoc = await db.collection('gagyeboo').doc('dividends').get();
+    if(divDoc.exists) {
+      const data = divDoc.data();
+      Object.keys(data).forEach(m => {
+        if(DIVIDENDS[m]) {
+          if(data[m].hj) DIVIDENDS[m].hj = data[m].hj;
+          if(data[m].yh) DIVIDENDS[m].yh = data[m].yh;
         }
       });
     }
@@ -688,11 +697,12 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
       }
     </style>
 
-    <!-- ⑤ 서브 탭: 현금 / 주식 / 부동산 — 클릭 시 토글 -->
+    <!-- ⑤ 서브 탭: 현금 / 주식 / 부동산 / 배당금 — 클릭 시 토글 -->
     <div class="asset-sub-tabs">
       <button class="asset-sub-tab active" onclick="toggleAssetSub('cash', this)">💵 현금</button>
       <button class="asset-sub-tab" onclick="toggleAssetSub('stock', this)">📈 주식</button>
       <button class="asset-sub-tab" onclick="toggleAssetSub('realty', this)">🏠 부동산</button>
+      <button class="asset-sub-tab" onclick="toggleAssetSub('dividend', this)">💰 배당금</button>
     </div>
 
     <!-- 현금 -->
@@ -754,7 +764,34 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- 배당금 -->
+    <div id="asub-dividend" class="asset-sub-section">
+      <div class="section-card" style="margin-bottom:16px">
+        <div class="section-header">
+          <h3>현진 배당금</h3>
+          <button class="btn-add" onclick="openDividendModal('hj')">＋ 배당금 추가</button>
+        </div>
+        <div class="overflow-x">
+          <table class="tbl" id="hjDividendTable">
+            <thead><tr><th>종목명</th><th style="text-align:right">배당금 (원)</th><th style="text-align:right">수정/삭제</th></tr></thead>
+            <tbody id="hjDividendBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="section-card" style="margin-bottom:16px">
+        <div class="section-header">
+          <h3>유한 배당금</h3>
+          <button class="btn-add" onclick="openDividendModal('yh')">＋ 배당금 추가</button>
+        </div>
+        <div class="overflow-x">
+          <table class="tbl" id="yhDividendTable">
+            <thead><tr><th>종목명</th><th style="text-align:right">배당금 (원)</th><th style="text-align:right">수정/삭제</th></tr></thead>
+            <tbody id="yhDividendBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 </div>
 
 <!-- ══ MODALS ══ -->
@@ -852,6 +889,16 @@ nav{display:flex;gap:4px;margin-bottom:22px;}
     <div class="fg"><label>비고</label><input type="text" id="rf-note" placeholder="예: 전세, 자가"></div>
     <div class="fg"><label>평가액 (원)</label><input type="number" id="rf-amt"></div>
     <div class="modal-btns"><button class="btn-cancel" onclick="closeModal('realtyModal')">취소</button><button class="btn-save" onclick="saveRealty()">저장</button></div>
+  </div>
+</div>
+
+<!-- 배당금 모달 -->
+<div class="modal-overlay" id="dividendModal">
+  <div class="modal">
+    <h2 id="dividendModalTitle">배당금 추가</h2>
+    <div class="fg"><label>종목명</label><input type="text" id="dv-name" placeholder="예: SCHD"></div>
+    <div class="fg"><label>배당금 (원)</label><input type="number" id="dv-amt" placeholder="예: 150000"></div>
+    <div class="modal-btns"><button class="btn-cancel" onclick="closeModal('dividendModal')">취소</button><button class="btn-save" onclick="saveDividend()">저장</button></div>
   </div>
 </div>
 
@@ -1113,6 +1160,64 @@ ASSETS['4월'] = {
 function c(n){ // comma format
   if(n==null)return'—';
   return n.toLocaleString('ko-KR');
+}
+
+// ─── 배당금 데이터 (월별, 자산과 독립) ───────────────────────────
+const DIVIDENDS = {};
+MONTH_LIST.forEach(m => {
+  // 현진 주식 종목명으로 초기화 (해당 월 데이터 기준, 없으면 3월 기준)
+  const hjBase = ASSETS['3월'].stock_hj.filter(s=>s.name!=='예수금').map(s=>({name:s.name,amt:0}));
+  const yhBase = ASSETS['3월'].stock_yh.filter(s=>!s.name.startsWith('예수금')).map(s=>({name:s.name,amt:0}));
+  DIVIDENDS[m] = { hj: hjBase.map(r=>({...r})), yh: yhBase.map(r=>({...r})) };
+});
+
+function saveDividends(){
+  if(window.saveToFirestore) window.saveToFirestore('gagyeboo','dividends', JSON.parse(JSON.stringify(DIVIDENDS)));
+}
+
+let editDivOwner=null, editDivIdx=null;
+function openDividendModal(who, idx=null){
+  editDivOwner=who; editDivIdx=idx;
+  document.getElementById('dividendModalTitle').textContent = idx===null ? `배당금 추가 (${who==='hj'?'현진':'유한'})` : '배당금 수정';
+  const rows = DIVIDENDS[curAssetMonth][who];
+  const r = idx!==null ? rows[idx] : null;
+  document.getElementById('dv-name').value = r ? r.name : '';
+  document.getElementById('dv-name').readOnly = false;
+  document.getElementById('dv-amt').value  = r ? (r.amt||'') : '';
+  document.getElementById('dividendModal').classList.add('open');
+  setTimeout(()=>document.getElementById(idx===null?'dv-name':'dv-amt').focus(),80);
+}
+function saveDividend(){
+  const name = document.getElementById('dv-name').value.trim();
+  const amt  = parseInt(document.getElementById('dv-amt').value)||0;
+  if(!name){ alert('종목명을 입력해주세요'); return; }
+  const rows = DIVIDENDS[curAssetMonth][editDivOwner];
+  if(editDivIdx===null){ rows.push({name,amt}); toast('추가됐어요 ✓'); }
+  else { rows[editDivIdx].name=name; rows[editDivIdx].amt=amt; toast('수정됐어요 ✓'); }
+  saveDividends();
+  closeModal('dividendModal'); renderDividends();
+}
+function renderDividends(){
+  ['hj','yh'].forEach(who=>{
+    const tbody = document.getElementById(who==='hj'?'hjDividendBody':'yhDividendBody');
+    const rows = DIVIDENDS[curAssetMonth][who];
+    tbody.innerHTML='';
+    if(!rows.length){
+      tbody.innerHTML=`<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">배당금 내역이 없습니다</td></tr>`;
+      return;
+    }
+    rows.forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.name}</td><td class="num-cell">${r.amt>0?c(r.amt)+'원':'<span style="color:var(--muted)">미입력</span>'}</td><td class="action-cell"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
+      tr.querySelector('.btn-edit').onclick=()=>openDividendModal(who,i);
+      tr.querySelector('.btn-del').onclick=()=>{if(!confirm('삭제할까요?'))return;DIVIDENDS[curAssetMonth][who].splice(i,1);saveDividends();renderDividends();toast('삭제됐어요');};
+      tbody.appendChild(tr);
+    });
+    const total=rows.reduce((s,r)=>s+(r.amt||0),0);
+    const tot=document.createElement('tr'); tot.className='total-row';
+    tot.innerHTML=`<td style="font-weight:700">합계</td><td class="num-cell" style="color:var(--green);font-weight:700">${c(total)}원</td><td></td>`;
+    tbody.appendChild(tot);
+  });
 }
 function fmtW(n){ if(n==null)return'—'; return n.toLocaleString('ko-KR')+'원'; }
 function fmtRate(buy,cur){
@@ -1525,7 +1630,7 @@ function renderAssets(){
   });
 
   buildAssetFlowChecks();renderFlowChart();renderFlowTable();
-  renderCash(); renderStocks(); renderRealty();
+  renderCash(); renderStocks(); renderRealty(); renderDividends();
   updateTotalWidget();
 }
 
@@ -1873,8 +1978,8 @@ function renderCashflow(){
     ig.appendChild(makeCfItem(k, fmtW(v), 'green',
       () => openCfIncomeModal(k, 'income'),
       () => { if(!confirm(`'${k}' 소득 항목을 삭제할까요?`)) return; delete CASHFLOW[curCfMonth].income[k]; delete BUDGET[curCfMonth].income[k]; saveCashflow(); saveBudget(); renderCashflow(); toast('삭제됐어요'); },
-      idx > 0 ? () => { CASHFLOW[curCfMonth].income = moveObjKey(CASHFLOW[curCfMonth].income, k, 'left'); saveCashflow(); renderCashflow(); } : null,
-      idx < incKeys.length-1 ? () => { CASHFLOW[curCfMonth].income = moveObjKey(CASHFLOW[curCfMonth].income, k, 'right'); saveCashflow(); renderCashflow(); } : null
+      idx > 0 ? () => { CASHFLOW[curCfMonth].income = moveObjKey(CASHFLOW[curCfMonth].income, k, 'left'); BUDGET[curCfMonth].income = {...CASHFLOW[curCfMonth].income}; saveCashflow(); saveBudget(); renderCashflow(); } : null,
+      idx < incKeys.length-1 ? () => { CASHFLOW[curCfMonth].income = moveObjKey(CASHFLOW[curCfMonth].income, k, 'right'); BUDGET[curCfMonth].income = {...CASHFLOW[curCfMonth].income}; saveCashflow(); saveBudget(); renderCashflow(); } : null
     ));
   });
 
@@ -2115,7 +2220,7 @@ function renderCfTxnTable(type){
     const tr = document.createElement('tr');
     tr.innerHTML = `<td class="tc-date">${fmtDay(t.date)}</td><td class="tc-desc editable-cell">${t.desc}</td><td class="tc-amt">${c(t.amt)}원</td><td class="tc-cat"><span class="${tagClass(t.cat)}">${t.cat}</span></td><td class="tc-act"><button class="btn-sm btn-edit">수정</button><button class="btn-sm btn-del">삭제</button></td>`;
     tr.querySelector('.btn-edit').onclick = () => openCfTxnModal(type, i);
-    tr.querySelector('.btn-del').onclick = () => { if(!confirm('삭제할까요?')) return; CASHFLOW[curCfMonth][type].splice(i,1); saveBudget(); renderCashflow(); toast('삭제됐어요'); };
+    tr.querySelector('.btn-del').onclick = () => { if(!confirm('삭제할까요?')) return; CASHFLOW[curCfMonth][type].splice(i,1); syncBudgetFromCashflow(curCfMonth); saveBudget(); renderCashflow(); toast('삭제됐어요'); };
     tbody.appendChild(tr);
   });
   const total = txns.reduce((s,t)=>s+t.amt,0);
@@ -2136,6 +2241,25 @@ function openCfTxnModal(type, idx=null){
   setTimeout(()=>document.getElementById(idx===null?'cf-date':'cf-desc').focus(),80);
 }
 
+// CASHFLOW(fixed+variable) → BUDGET.txns 역방향 동기화
+function syncBudgetFromCashflow(m){
+  const fixed = Object.values(CASHFLOW[m].fixed).filter(f=>f.amt>0);
+  const variable = CASHFLOW[m].variable || [];
+  // fixed 항목을 BUDGET.txns에서 업데이트 (cat/desc 매칭으로 찾아 덮어쓰기)
+  FIXED_KEYS.forEach(key => {
+    const cf = CASHFLOW[m].fixed[key];
+    if(!cf||!cf.amt) return;
+    const idx = BUDGET[m].txns.findIndex(t=>FIXED_MATCH[key](t));
+    const label = key==='건강보험'?'현진 건강보험':key==='정수기비데'?'정수기 비데':key==='관리비'?'아파트 관리비':'가스비';
+    if(idx>=0){ BUDGET[m].txns[idx].amt=cf.amt; BUDGET[m].txns[idx].date=cf.date; }
+    else { BUDGET[m].txns.push({date:cf.date, desc:label, amt:cf.amt, cat:FIXED_CATS[key]}); }
+  });
+  // variable 항목 전체를 BUDGET.txns에서 비고정 항목으로 교체
+  const fixedTxns = BUDGET[m].txns.filter(t=>FIXED_KEYS.some(k=>FIXED_MATCH[k](t)));
+  BUDGET[m].txns = [...fixedTxns, ...variable.map(t=>({...t}))];
+  BUDGET[m].txns.sort((a,b)=>parseDateNum(a.date)-parseDateNum(b.date));
+}
+
 function saveCfTxn(){
   const date = fmtDay(document.getElementById('cf-date').value.trim());
   const desc = document.getElementById('cf-desc').value.trim();
@@ -2147,6 +2271,7 @@ function saveCfTxn(){
   else { const t=arr[editCfTxnIdx]; t.date=date; t.desc=desc; t.amt=amt; t.cat=cat; toast('수정됐어요 ✓'); }
   // 날짜 오름차순 정렬
   arr.sort((a,b) => parseDateNum(a.date) - parseDateNum(b.date));
+  syncBudgetFromCashflow(curCfMonth);
   saveBudget();
   closeModal('cfTxnModal'); renderCashflow();
 }
@@ -2155,13 +2280,13 @@ function saveCfTxn(){
 function saveBudget(){ if(window.saveToFirestore) window.saveToFirestore('gagyeboo','budget', JSON.parse(JSON.stringify(BUDGET))); }
 function saveAssets(){
   if(!window.saveToFirestore) return;
-  // realty는 코드에서 관리하므로 Firestore에 저장하지 않음
   const assetsSave = {};
   MONTH_LIST.forEach(m => {
     assetsSave[m] = {
       cash:     ASSETS[m].cash,
       stock_hj: ASSETS[m].stock_hj,
       stock_yh: ASSETS[m].stock_yh,
+      realty:   ASSETS[m].realty,
     };
   });
   window.saveToFirestore('gagyeboo','assets', JSON.parse(JSON.stringify(assetsSave)));
