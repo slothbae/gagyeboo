@@ -1251,12 +1251,19 @@ function fmtDivNum(val, currency){
   if(currency==='USD') return `$${val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
   return val.toLocaleString('ko-KR',{minimumFractionDigits:0,maximumFractionDigits:2});
 }
+function fmtBalance(val){
+  if(val==null||val===0) return null;
+  // 주식 수 — 소수점 최대 2자리, $ 없이
+  return val.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+}
 
 // 인라인 편집 셀 생성 헬퍼
 function makeDivInlineCell(r, i, field, who){
   const cur = r.currency||'USD';
   const val = r[field]||0;
-  const display = fmtDivNum(val, cur) || '<span style="color:var(--muted);cursor:pointer;">—</span>';
+  const display = field==='balance'
+    ? (fmtBalance(val) || '<span style="color:var(--muted);cursor:pointer;">—</span>')
+    : (fmtDivNum(val, cur) || '<span style="color:var(--muted);cursor:pointer;">—</span>');
   const td = document.createElement('td');
   td.className='num-cell editable-cell';
   td.style.cursor='text';
@@ -1316,11 +1323,10 @@ function renderDividends(){
     const krwRows = rows.filter(r=>(r.currency||'USD')==='KRW');
     const usdRows = rows.filter(r=>(r.currency||'USD')==='USD');
     const makeTotRow=(label, filteredRows, currency)=>{
-      const totalBal = filteredRows.reduce((s,r)=>s+(r.balance||0),0);
       const totalAmt = filteredRows.reduce((s,r)=>s+(r.amt||0),0);
       const fmt = v => fmtDivNum(v,currency)||'—';
       const tot=document.createElement('tr'); tot.className='total-row';
-      tot.innerHTML=`<td style="font-weight:700;color:var(--muted);font-size:0.75rem;">${label}</td><td class="num-cell" style="font-weight:700">${fmt(totalBal)}</td><td class="num-cell" style="color:var(--green);font-weight:700">${fmt(totalAmt)}</td><td colspan="2"></td>`;
+      tot.innerHTML=`<td style="font-weight:700;color:var(--muted);font-size:0.75rem;">${label}</td><td></td><td class="num-cell" style="color:var(--green);font-weight:700">${fmt(totalAmt)}</td><td colspan="2"></td>`;
       return tot;
     };
     if(usdRows.length) tbody.appendChild(makeTotRow('USD 합계', usdRows, 'USD'));
