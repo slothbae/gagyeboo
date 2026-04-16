@@ -65,8 +65,11 @@ window.loadFromFirestore = async function() {
       const data = divDoc.data();
       Object.keys(data).forEach(m => {
         if(DIVIDENDS[m]) {
-          if(data[m].hj) DIVIDENDS[m].hj = data[m].hj;
-          if(data[m].yh) DIVIDENDS[m].yh = data[m].yh;
+          ['hj','yh'].forEach(who => {
+            if(Array.isArray(data[m][who]) && data[m][who].length > 0) {
+              DIVIDENDS[m][who] = data[m][who];
+            }
+          });
         }
       });
     }
@@ -81,8 +84,7 @@ window.loadFromFirestore = async function() {
       BUDGET[m].income = {...CASHFLOW[m].income};
     }
   });
-  buildBudgetTabs(); renderMonthly(); updateTotalWidget();
-  buildCfMonthTabs(); renderCashflow();
+  renderAll();
 };
 
 window.addEventListener('load', () => window.loadFromFirestore());
@@ -2411,12 +2413,20 @@ function saveCashflow(){
   if(window.saveToFirestore) window.saveToFirestore('gagyeboo','cashflow', cfSave);
 }
 
+// ═══════════ RENDER ALL ═══════════
+// 새 탭/섹션 추가할 때 여기에만 추가하면 됨
+function renderAll(){
+  buildBudgetTabs();
+  renderMonthly();
+  updateTotalWidget();
+  buildCfMonthTabs();
+  renderCashflow();
+  buildAssetMonthTabs();
+  renderAssets(); // 내부에서 renderDividends() 포함
+}
+
 // INIT
-buildBudgetTabs();
-renderMonthly();
-updateTotalWidget();
-buildCfMonthTabs();
-renderCashflow();
+renderAll();
 </script>
 </body>
 </html>
